@@ -1,0 +1,460 @@
+
+Sub AlgorithmNEW()
+
+DataImport  'Imports the RAW data into the New Bookings Sheet
+CourseCodeAllocation 'allocates the course dates in New Bookings (Columns G:T)
+DeferredIncomeCalculation 'calculates the deferred income in New Bookings (Columns X:Z)
+
+End Sub
+Sub TodayNEW() 'Setting Dates
+
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("New Bookings")
+
+sSheet.Range("R2").Value = "=TODAY()"
+sSheet.Range("R3").Value = "=DATE(YEAR(R2)-3,MONTH(R2),DAY(R2)+1)"
+
+End Sub
+
+Sub LastMonthNEW() 'Setting Dates
+
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("New Bookings")
+
+sSheet.Range("R2").Value = "=EOMONTH(TODAY(),-1)"
+sSheet.Range("R3").Value = "=DATE(YEAR(R2)-3,MONTH(R2),DAY(R2)+1)"
+
+End Sub
+
+Sub DataCleanse()  'Clear all Test Data
+
+'Define Worksheets
+Set ws = ThisWorkbook.Worksheets("Import")
+ws.Activate
+
+'Define Working Range
+lastrow = ws.Range("C" & Rows.Count).End(xlUp).row
+
+'REMOVE TEST DATA (Not perfectly efficient but hey it works)
+
+        'Clear any existing filters
+          On Error Resume Next
+            ws.ShowAllData
+          On Error GoTo 0
+        
+          'Apply Filter 1
+          ws.Range("C4:Z" & lastrow).AutoFilter Field:=1, Criteria1:= _
+                "=*" & "CW" & "*", Criteria2:= _
+                "=*" & "CB" & "*", Operator:=xlOr
+          
+          'Delete Rows
+          Application.DisplayAlerts = False
+          On Error Resume Next
+            ws.Range("A5:Z" & lastrow).SpecialCells(xlCellTypeVisible).Delete
+            On Error Resume Next
+          Application.DisplayAlerts = True
+          
+          
+          'Clear Filter
+          On Error Resume Next
+            ws.ShowAllData
+          On Error GoTo 0
+          
+            'Apply Filter 2
+          ws.Range("C4:Z" & lastrow).AutoFilter Field:=1, Criteria1:= _
+                "=*" & "Preact" & "*", Criteria2:= _
+                "=*" & "SZ" & "*", Operator:=xlOr
+          
+          'Delete Rows
+          Application.DisplayAlerts = False
+          On Error Resume Next
+            ws.Range("C5:Z" & lastrow).SpecialCells(xlCellTypeVisible).Delete
+            On Error Resume Next
+          Application.DisplayAlerts = True
+          
+          
+          'Clear Filter
+          On Error Resume Next
+            ws.ShowAllData
+          On Error GoTo 0
+          
+          
+              'Apply Filter 3
+          ws.Range("C4:Z" & lastrow).AutoFilter Field:=1, Criteria1:= _
+                "=*" & "hanley" & "*"
+          
+          'Delete Rows
+          Application.DisplayAlerts = False
+          On Error Resume Next
+            ws.Range("C5:Z" & lastrow).SpecialCells(xlCellTypeVisible).Delete
+            On Error Resume Next
+          Application.DisplayAlerts = True
+  
+        
+        'Clear Filter
+        On Error Resume Next
+          ws.ShowAllData
+        On Error GoTo 0
+        
+                  'Apply Filter 4
+          ws.Range("C4:Z" & lastrow).AutoFilter Field:=1, Criteria1:= _
+                "=*" & "Tom Test" & "*", Criteria2:= _
+                "=*" & "Level 5 Test Dave" & "*", Operator:=xlOr
+          
+          'Delete Rows
+          Application.DisplayAlerts = False
+          On Error Resume Next
+            ws.Range("A5:Z" & lastrow).SpecialCells(xlCellTypeVisible).Delete
+            On Error Resume Next
+          Application.DisplayAlerts = True
+          
+          
+          'Clear Filter
+          On Error Resume Next
+            ws.ShowAllData
+          On Error GoTo 0
+          
+                            'Apply Filter 5
+          ws.Range("C4:Z" & lastrow).AutoFilter Field:=1, Criteria1:= _
+                "=*" & "DB Test" & "*", Criteria2:= _
+                "=*" & "Test" & "*", Operator:=xlOr
+          
+          'Delete Rows
+          Application.DisplayAlerts = False
+          On Error Resume Next
+            ws.Range("A5:Z" & lastrow).SpecialCells(xlCellTypeVisible).Delete
+            On Error Resume Next
+          Application.DisplayAlerts = True
+          
+          
+          'Clear Filter
+          On Error Resume Next
+            ws.ShowAllData
+          On Error GoTo 0
+        
+'REMOVE UNNECCESSARY/UNUSED COURSE CODES FROM THE LIST
+
+        'Clear any existing filters
+          On Error Resume Next
+            ws.ShowAllData
+          On Error GoTo 0
+          
+          'Apply Filter to clear any unneccesary rows
+          ws.Range("C4:Z" & lastrow).AutoFilter Field:=14, Criteria1:=Array("AN", "AP3", _
+          "ASGP", "ASPE", "CN", "COVID-19", "DB", "FA", "GB", "GEE", "IE", "LBE", "LLB", "MC", _
+          "MGE", "MKBE", "MW", "NAE", "NWC", "NWS", "PB", "PC", "PN", "PP", "PRE", "PX", "RA", "RS", _
+          "SP", "UF", "VGE", "WBKS", "ASGI", "ASPI"), Operator:=xlFilterValues
+          
+          'Delete Rows
+          Application.DisplayAlerts = False
+          On Error Resume Next
+            ws.Range("C5:Z" & lastrow).SpecialCells(xlCellTypeVisible).Delete
+            On Error Resume Next
+          Application.DisplayAlerts = True
+          
+          
+          'Clear Filter
+          On Error Resume Next
+            ws.ShowAllData
+          On Error GoTo 0
+          
+'REMOVE PAYL
+
+'Clear any existing filters
+          On Error Resume Next
+            ws.ShowAllData
+          On Error GoTo 0
+          
+          'Apply Filter to clear any unneccesary rows
+          ws.Range("C4:Z" & lastrow).AutoFilter Field:=10, Criteria1:=Array("Deposit; PAYL", "PAYL", "Deposit; ELCAS; PAYL"), Operator:=xlFilterValues
+          
+          'Delete Rows
+          Application.DisplayAlerts = False
+          On Error Resume Next
+            ws.Range("C5:Z" & lastrow).SpecialCells(xlCellTypeVisible).Delete
+            On Error Resume Next
+          Application.DisplayAlerts = True
+          
+          
+          'Clear Filter
+          On Error Resume Next
+            ws.ShowAllData
+          On Error GoTo 0
+
+
+End Sub
+
+'New Data formatting
+Sub DataImport() 'Data allocation
+
+'Algorithm Time Analysis
+Dim StartTime As Double
+Dim SecondsElapsed As Double
+StartTime = Timer
+
+'Define Worksheets
+Dim aSheet As Worksheet
+Set aSheet = Worksheets("Import")
+Dim bSheet As Worksheet
+Set bSheet = Worksheets("New Bookings")
+Dim codeSheet As Worksheet
+Set codeSheet = Worksheets("Rules")
+
+'Define Working Range
+lastRow2 = aSheet.Range("G" & Rows.Count).End(xlUp).row
+
+'Identify unique booking IDs
+aSheet.Range("A5:B1000000").Clear
+bSheet.Range("A6:AG1000000").Clear
+aSheet.Range("G5:G" & lastRow2).AdvancedFilter Action:=xlFilterCopy, CopyToRange:=bSheet.Range("A6"), Unique:=True
+bSheet.Rows(6).EntireRow.Delete
+
+'Define Working Range
+lastrow = bSheet.Range("A" & Rows.Count).End(xlUp).row
+alastRow = aSheet.Range("C" & Rows.Count).End(xlUp).row
+Dim rnge As Range 'Name Range
+Set rnge = Range("B6:B" & lastrow) 'Name Range
+Dim rnge2 As Range 'SN Range
+Set rnge2 = Range("C6:C" & lastrow) 'SN Range
+Dim rnge3 As Range 'Booking Date
+Set rnge3 = Range("D6:D" & lastrow) 'Booking Date
+Dim rnge4 As Range 'Price
+Set rnge4 = Range("E6:E" & lastrow) 'Price
+Dim rnge5 As Range 'VAT
+Set rnge5 = Range("F6:F" & lastrow) 'VAT
+Dim rnge6 As Range 'Course Type
+Set rnge6 = Range("AB6:AB" & lastrow) 'Course Type
+Dim rnge7 As Range, cell As Range 'Course Length
+Set rnge7 = Range("AD6:AD" & lastrow) 'Course Length
+Dim rngeA As Range 'Name Range
+Set rngeA = aSheet.Range("A5:A" & alastRow) 'Name Range
+Dim rngeB As Range 'Temp_code Range
+Set rngeB = aSheet.Range("B5:B" & alastRow) 'Temp_code Range
+
+
+'Course Type
+rngeA.Value = "=IF(G5="""","""",G5)"
+rngeB.Value = "=G5&N5"
+'Name Matching
+rnge.Value = "=VLOOKUP(A6,Import!A:C,3,FALSE)"
+'SN Matching
+rnge2.Value = "=IF(VLOOKUP(A6,Import!A:E,5,FALSE) = """","""",VLOOKUP(A6,Import!A:E,5,FALSE))"
+'Booking Date Matching
+rnge3.Value = "=VLOOKUP(A6,Import!A:U,21,FALSE)"
+rnge3.NumberFormat = "dd/mm/yyyy"
+'Price Matching
+rnge4.Value = "=VLOOKUP(A6,Import!A:P,16,FALSE)"
+'VAT Matching
+rnge5.Value = "=VLOOKUP(A6,Import!A:W,23,FALSE)"
+'Course Type
+rnge6.Value = "=VLOOKUP(A6,Import!A:F,6,FALSE)"
+
+'Course Length
+Dim courseCode As String
+Dim length As Integer
+Dim Val As Integer
+
+
+For Each cell In rnge7
+
+If bSheet.Range("AB" & cell.row).Value = "" Then
+    bSheet.Range(cell).Value = ""
+Else
+    courseCode = Left(bSheet.Range("AB" & cell.row).Value, InStr(bSheet.Range("AB" & cell.row).Value, " : ") - 1)
+    On Error Resume Next
+    length = 12
+    
+    length = Application.VLookup(courseCode, codeSheet.Range("R3:T25"), 3, False)
+       
+    If IsError(length) Then
+        bSheet.Range(cell).Value = "12"
+    Else
+        cell.Value = length
+    End If
+
+End If
+
+Next cell
+
+'Algorithm Time Analysis - Results
+SecondsElapsed = Round(Timer - StartTime, 2)
+MsgBox "This code ran successfully in " & SecondsElapsed & " seconds", vbInformation
+
+End Sub
+
+Sub CourseCodeAllocation()
+
+'Define Worksheets
+Dim aSheet As Worksheet
+Set aSheet = Worksheets("Import")
+Dim bSheet As Worksheet
+Set bSheet = Worksheets("New Bookings")
+
+'Define variables
+lastrow = ActiveSheet.Range("A" & Rows.Count).End(xlUp).row
+lastRow2 = aSheet.Range("C" & Rows.Count).End(xlUp).row
+Dim temp_val As String
+
+'Define Range
+Dim rng As Range
+Dim row As Range
+Dim cell As Range
+Set rng = Range("G6:AA" & lastrow)
+rng.NumberFormat = "dd/mm/yyyy"
+
+For Each row In rng.Rows
+    For Each cell In row.cells
+        col = Split(cell.Address, "$")(1)
+        On Error Resume Next
+        temp_val = Application.WorksheetFunction.IfNa(Application.VLookup(Range("A" & cell.row).Value & Range(col & "5").Value, aSheet.Range("B5:T" & lastRow2), 19, False), " ")
+        
+        If temp_val = " " Then
+            cell.Value = " "
+        Else
+            cell.NumberFormat = "dd/mm/yyyy"
+            cell.Value = Left(temp_val, 10)
+            cell.NumberFormat = "dd/mm/yyyy"
+        End If
+        
+        cell.Value = Left(cell.Value, 10)
+        
+    Next cell
+Next row
+
+' Format to Date format
+rng.NumberFormat = "dd/mm/yyyy"
+' Replace No Date courses with TBC
+ActiveSheet.Range("G6:AA500000").Replace "00", "01"
+ActiveSheet.Range("G6:AA500000").Replace What:="1/0/1901", Replacement:="TBC", LookAt:=xlPart, SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False
+
+End Sub
+
+Sub DeferredIncomeCalculation()
+
+'Worksheet assignment
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("New Bookings")
+Dim cSheet As Worksheet
+Set cSheet = Worksheets("Import")
+Dim tSheet As Worksheet
+Set tSheet = Worksheets("Rules")
+
+'Range assignment
+lastrow = ActiveSheet.Range("A" & Rows.Count).End(xlUp).row
+lastRow2 = cSheet.Range("A" & Rows.Count).End(xlUp).row
+Dim rnge As Range, cells As Range
+Set rnge = Range("AG6:AG" & lastrow)
+
+'Variable Assignment
+Dim status As String 'Course modules status (Accessed/Not accessed)
+Dim splitCode As String 'Module cost calc method
+Dim modulePrice As Integer 'Module Price (in Decimal)
+Dim defModule As Variant 'Deferred Cost for module
+Dim defTotal As Variant 'Deferred Cost for booking
+Dim col As String 'active col position
+
+
+'Range assignment
+Dim prcRng As Range
+Dim rng As Range
+Dim row As Range
+Dim cell As Range
+
+'Deferred Income - column AE
+'Working Range (modules)
+Set rng = Range("G6:AA" & lastrow)
+
+'Algorithmic Loop
+For Each row In rng.Rows
+
+    'Set accumulative balance variables to default
+    defTotal = 0
+    
+  For Each cell In row.cells
+    
+    status = ""
+    
+    'Process 1 - Course Access conversion to Status
+    If cell.Value = "TBC" Then
+        status = "Not Accessed"
+    ElseIf cell.Value = "" Then
+        status = "Not Accessed"
+    ElseIf cell.Value = " " Then
+        status = "Not Accessed"
+    ElseIf DateValue(cell.Value) < Range("R2").Value Then
+        status = "Accessed"
+    Else
+        status = "Not Accessed"
+    End If
+    'End Process 1
+    'MsgBox status
+    'Process  - Cost Assignment
+    If cell.Value = "" Then
+        defModule = 0
+    Else
+        'Do Vlookup and get the price
+            col = Split(cell.Address, "$")(1)
+            If cell.Value = "" Then
+                modulePrice = 0
+            Else
+                modulePrice = Application.WorksheetFunction.IfNa(Application.VLookup((Range("A" & cell.row).Value & Range(col & "5").Value), cSheet.Range("B5:Z" & lastRow2), 25, False), "0")
+                'Get the cost split code
+                splitCode = Application.VLookup(Range(col & "5").Value, tSheet.Range("M3:O23"), 3, False)
+                'split and assign cost
+                If splitCode = "50RWP50WA" Then
+                    If status = "Not Accessed" Then
+                        defModule = modulePrice / 1.2 * 0.5
+                    ElseIf status = "Accessed" Then
+                        defModule = 0
+                    Else
+                        defModule = 0
+                    End If
+                ElseIf splitCode = "75RWP25WA" Then
+                    If status = "Not Accessed" Then
+                        defModule = modulePrice / 1.2 * 0.25
+                    ElseIf status = "Accessed" Then
+                        defModule = 0
+                    Else
+                        defModule = 0
+                    End If
+                ElseIf splitCode = "60RWP40WA" Then
+                    If status = "Not Accessed" Then
+                        defModule = modulePrice / 1.2 * 0.4
+                    ElseIf status = "Accessed" Then
+                        defModule = 0
+                    Else
+                        defModule = 0
+                    End If
+                End If
+            End If
+        End If
+      'MsgBox Round(CDec(defModule), 2)
+      defTotal = defTotal + Round(CDec(defModule), 2)
+    Next cell
+    Range("AE" & row.row).Value = defTotal
+Next row
+
+Range("AF6:AF" & lastrow).Value = "=IFERROR(IF(AE6=0,0,AE6-DATEDIF(D6,$R$2,""M"")*13),AE6)"
+
+' Deferred Income - column Z
+For Each cells In rnge
+    
+    'If the course deadline has not been exceeded, calculate deferred income.
+        'If the booking date + course length is in the future then calculate deferred income
+    If WorksheetFunction.EDate(Range("D" & cells.row).Value, Range("AD" & cells.row).Value) > Range("R2").Value Then
+       If Range("AF" & cells.row).Value <= 0 Then
+            cells.Value = 0
+       Else
+         cells.Value = Range("AF" & cells.row).Value
+       End If
+    'If the course deadline is exceeded nothing gets deferred
+    Else
+       cells.Value = ""
+    End If
+
+Next cells
+
+End Sub
+
+
+

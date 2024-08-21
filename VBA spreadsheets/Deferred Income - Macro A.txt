@@ -1,0 +1,393 @@
+Sub Algorithm()
+
+'Algorithm Time Analysis
+Dim StartTime As Double
+Dim SecondsElapsed As Double
+StartTime = Timer
+
+'Algorithm
+'percentagePaid  'G
+courseLength    'AY
+allocation      'AZ
+moneyUnpaid     'BA
+moneyOS         'BB
+'removeFees      'BC
+deferredIncome  'BD
+
+'Algorithm Time Analysis - Results
+SecondsElapsed = Round(Timer - StartTime, 2)
+MsgBox "This code ran successfully in " & SecondsElapsed & " seconds", vbInformation
+
+
+End Sub
+
+Sub Refresh()
+    
+Sheets("New Bookings (10022021)").Calculate
+Sheets("Historic Bookings").Calculate
+    
+End Sub
+
+Sub Today() 'Setting Dates
+
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("Historic Bookings")
+
+sSheet.Range("R2").Value = "=TODAY()"
+sSheet.Range("R3").Value = "=DATE(YEAR(R2)-3,MONTH(R2),DAY(R2)+1)"
+
+End Sub
+
+Sub LastMonth() 'Setting Dates
+
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("Historic Bookings")
+
+sSheet.Range("R2").Value = "=EOMONTH(TODAY(),-1)"
+sSheet.Range("R3").Value = "=DATE(YEAR(R2)-3,MONTH(R2),DAY(R2)+1)"
+
+End Sub
+
+
+Sub courseLength()
+
+
+Dim rnge As Range, cell As Range
+Set rnge = Range("AY6:AY10000")
+
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("Historic Bookings")
+
+Dim codeSheet As Worksheet
+Set codeSheet = Worksheets("Rules")
+
+Dim courseCode As String
+Dim length As Integer
+Dim Val As Integer
+
+
+For Each cell In rnge
+
+If Range("AW" & cell.row) = "" Then
+    
+Else
+    courseCode = Left(Range("AW" & cell.row).Value, InStr(Range("AW" & cell.row).Value, " ") - 1)
+    On Error Resume Next
+    length = 0
+    
+    length = Application.VLookup(courseCode, codeSheet.Range("G3:I20"), 3, False)
+       
+    If IsError(length) Then
+        sSheet.Range(cell).Value = ""
+    Else
+        cell.Value = length
+    End If
+   
+
+End If
+
+Next cell
+
+End Sub
+
+
+Sub moneyUnpaid()
+
+lastrow = ActiveSheet.Range("D" & Rows.Count).End(xlUp).row
+
+Dim rnge As Range, cell As Range
+Set rnge = Range("BA6:BA" & lastrow)
+
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("Historic Bookings")
+
+
+For Each cell In rnge
+
+    If Range("D" & cell.row).Value - Range("E" & cell.row).Value < 0 Then
+       cell.Value = ""
+    Else
+       cell.Value = Range("D" & cell.row) - Range("E" & cell.row)
+    End If
+
+Next cell
+
+End Sub
+
+Sub moneyOS()
+
+lastrow = ActiveSheet.Range("A" & Rows.Count).End(xlUp).row
+
+Dim rnge As Range, cell As Range
+Set rnge = Range("BB6:BB" & lastrow)
+
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("Historic Bookings")
+
+
+For Each cell In rnge
+
+    If Range("BA" & cell.row).Value > Range("AZ" & cell.row).Value Then
+       cell.Value = ""
+    Else
+       If Range("AZ" & cell.row).Value - Range("BA" & cell.row).Value < 13 Then
+        cell.Value = ""
+       Else
+        cell.Value = Range("AZ" & cell.row).Value - Range("BA" & cell.row).Value
+       End If
+    End If
+  
+    
+
+Next cell
+
+End Sub
+'Final Deferred Income checks - Column BD
+Sub deferredIncome()
+
+'Range assignment
+lastrow = ActiveSheet.Range("A" & Rows.Count).End(xlUp).row
+Dim rnge As Range, cell As Range
+Set rnge = Range("BD6:BD" & lastrow)
+
+'Worksheet assignment
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("Historic Bookings")
+
+
+For Each cell In rnge
+    
+    'If the course deadline has not been exceeded, calculate deferred income.
+        'If the booking date + course length is in the future then calculate deferred income
+    If WorksheetFunction.EDate(Range("C" & cell.row).Value, Range("AY" & cell.row).Value) > Range("R2").Value Then
+       cell.Value = Range("BC" & cell.row).Value
+    
+    'If the course deadline is exceeded nothing gets deferred
+    Else
+       cell.Value = ""
+    End If
+
+Next cell
+
+End Sub
+
+Sub removeFees()
+
+Dim val1 As Integer
+
+lastrow = ActiveSheet.Range("A" & Rows.Count).End(xlUp).row
+
+Dim rnge As Range, cell As Range
+Set rnge = Range("BC6:BC" & lastrow)
+
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("Historic Bookings")
+
+For Each cell In rnge
+        
+    If (Range("BB" & cell.row).Value - (DateDiff("m", Range("C" & cell.row).Value, Range("R2").Value) * 13)) < 0 Then
+        vall = 0
+    Else
+        val1 = (DateDiff("m", Range("C" & cell.row).Value, Range("R2").Value) * 13)
+    End If
+
+cell.Value = vall - (Range("F" & cell.row).Value) / (Range("D" & cell.row).Value) * vall
+
+Next cell
+
+End Sub
+Sub percentagePaid()
+
+lastrow = ActiveSheet.Range("A" & Rows.Count).End(xlUp).row
+
+Dim rnge As Range, cell As Range
+Set rnge = Range("G6:G" & lastrow)
+
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("Historic Bookings")
+
+For Each cell In rnge
+        
+cell.Value = Range("E" & cell.row).Value / Range("D" & cell.row).Value
+
+Next cell
+
+End Sub
+
+Sub allocation()
+
+'Worksheet assignment
+Dim sSheet As Worksheet
+Set sSheet = Worksheets("Historic Bookings")
+Dim cSheet As Worksheet
+Set cSheet = Worksheets("Rules")
+
+'Variable Assignment
+Dim status As String 'Course modules status (Accessed/Not accessed)
+Dim splitCode As String 'Module cost calc method
+Dim modulePriceString As String 'Module Price (in String format)
+Dim modulePrice As Integer 'Module Price (in Decimal)
+Dim modulesTotal As Variant 'Accumulated course cost (in Decimal)
+Dim defModule As Variant 'Deferred Cost for module
+Dim defTotal As Variant 'Deferred Cost for booking
+Dim temp1 As Variant 'temp value for NWE calculation
+Dim temp2 As Variant 'temp value2 for NWE calculation
+Dim col As String 'active col position
+
+'Range assignment
+Dim prcRng As Range
+Dim rng As Range
+Dim row As Range
+Dim cell As Range
+
+'Last row
+lastrow = ActiveSheet.Range("A" & Rows.Count).End(xlUp).row
+'Working Range
+Set rng = Range("I6:AV" & lastrow)                           'Change to I6 when ready
+
+'Algorithmic Loop
+For Each row In rng.Rows
+    'Set accumulative balance variables to default
+    modulesTotal = 0
+    defTotal = 0
+  For Each cell In row.cells
+    'Layer 1 - course codes conversion to Dates
+        dateNum = ""
+        For I = 1 To Len(cell)
+            If IsNumeric(Mid(cell, I, 1)) Then
+                dateNum = dateNum & Mid(cell, I, 1)
+            End If
+        Next I
+        
+        If Len(dateNum) = 4 Then
+            dateNum = dateNum & "01"
+            dateNum = DateSerial(Left(dateNum, 2), Mid(dateNum, 3, 2), Right(dateNum, 2))
+        ElseIf Len(dateNum) = 5 Then
+            dateNum = Left(dateNum, 4) & "01"
+            dateNum = DateSerial(Left(dateNum, 2), Mid(dateNum, 3, 2), Right(dateNum, 2))
+        Else
+            dateNum = ""
+        End If
+    'End Layer1
+    
+    'Layer 2 - Course Access conversion to Status
+    If dateNum < Range("R2").Value Then
+        status = "Accessed"
+    ElseIf dateNum = "" Then
+        status = "Not Accessed"
+    Else
+        status = "Not Accessed"
+    End If
+    'End Layer2
+    
+    
+    'Layer 3 - Cost Assignment
+    If cell = "" Then
+        defModule = 0
+    Else
+        ' Extract the cost
+            col = Split(cell.Address, "$")(1)
+            
+            
+            'Special Treatment for NWE
+            If Range(col & "5").Value = "NWE" And cell.row < 4620 Then
+                'IF NWE Code is available
+                If InStr(1, (Range("AX" & cell.row).Value), "NWE") > 0 Then
+                    modulePriceString = (Mid(Range("AX" & cell.row).Value, Application.WorksheetFunction.Search(Range(col & "5").Value & " " & "(£", Range("AX" & cell.row).Value) + Len(Range(col & "5").Value & " (£"), Application.WorksheetFunction.Search("), ", Mid(Range("AX" & cell.row).Value, Application.WorksheetFunction.Search(Range(col & "5").Value & " (£", Range("AX" & cell.row).Value) + Len(Range(col & "5").Value & " (£") + 1, 1000))))
+                    modulesTotal = modulesTotal + modulePriceString
+                'IF NWS and NWC Code is available
+                Else
+                    'IF NWS Code is available
+                    If InStr(1, (Range("AX" & cell.row).Value), "NWS") > 0 Then
+                        temp1 = (Mid(Range("AX" & cell.row).Value, Application.WorksheetFunction.Search("NWS" & " " & "(£", Range("AX" & cell.row).Value) + Len("NWS" & " (£"), Application.WorksheetFunction.Search("), ", Mid(Range("AX" & cell.row).Value, Application.WorksheetFunction.Search("NWS" & " (£", Range("AX" & cell.row).Value) + Len("NWS" & " (£") + 1, 1000))))
+                    Else
+                        temp1 = 0
+                    End If
+                    'IF NWC Code is available
+                    If InStr(1, (Range("AX" & cell.row).Value), "NWC") > 0 Then
+                        temp2 = (Mid(Range("AX" & cell.row).Value, Application.WorksheetFunction.Search("NWC" & " " & "(£", Range("AX" & cell.row).Value) + Len("NWC" & " (£"), Application.WorksheetFunction.Search("), ", Mid(Range("AX" & cell.row).Value, Application.WorksheetFunction.Search("NWC" & " (£", Range("AX" & cell.row).Value) + Len("NWC" & " (£") + 1, 1000))))
+                    Else
+                        temp2 = 0
+                    End If
+                    modulePriceString = CDec(temp1) + CDec(temp2)
+                    modulesTotal = modulesTotal + modulePriceString
+                End If
+            
+            ElseIf Range(col & "5").Value = "PE" And cell.row >= 4620 Then
+                    modulePriceString = 0
+                    modulesTotal = modulesTotal + modulePriceString
+                    
+            ElseIf Range(col & "5").Value = "NWE" And cell.row >= 4620 Then
+                    modulePriceString = 0
+                    modulesTotal = modulesTotal + modulePriceString
+            Else
+                On Error Resume Next
+                modulePriceString = 0
+        
+                modulePriceString = (Mid(Range("AX" & cell.row).Value, Application.WorksheetFunction.Search(Range(col & "5").Value & " " & "(£", Range("AX" & cell.row).Value) + Len(Range(col & "5").Value & " (£"), Application.WorksheetFunction.Search("), ", Mid(Range("AX" & cell.row).Value, Application.WorksheetFunction.Search(Range(col & "5").Value & " (£", Range("AX" & cell.row).Value) + Len(Range(col & "5").Value & " (£") + 1, 1000))))
+                modulesTotal = modulesTotal + modulePriceString
+            End If
+            
+        ' Check whether the course has been accessed
+            splitCode = Application.WorksheetFunction.VLookup(Range(col & "5").Value, cSheet.Range("B3:D48"), 3, False)
+             
+        ' Split and assign the cost
+            If splitCode = "50RWP50WA" Then
+                If Range("E" & cell.row).Value >= CDec(modulesTotal) And status = "Not Accessed" Then     'change from module to sum of all modules to date and do a VLOOKUP to course code  & date matrix to check if accessed. If accessed Then 0
+                    defModule = CDec(modulePriceString / 2)
+                ElseIf Range("E" & cell.row).Value >= CDec(modulesTotal) And status = "Accessed" Then
+                    defModule = CDec(0)
+                Else
+                    defModule = WorksheetFunction.Min(CDec(modulePriceString), Range("E" & cell.row).Value)
+                End If
+            ElseIf splitCode = "75RWP25WA" Then
+                If Range("E" & cell.row).Value >= CDec(modulesTotal) And status = "Not Accessed" Then     'change from module to sum of all modules to date and do a VLOOKUP to course code  & date matrix to check if accessed. If accessed Then 0
+                    defModule = CDec(modulePriceString * 0.25)
+                ElseIf Range("E" & cell.row).Value >= CDec(modulesTotal) And status = "Accessed" Then
+                    defModule = CDec(0)
+                Else
+                    defModule = WorksheetFunction.Min(CDec(modulePriceString), Range("E" & cell.row).Value)
+                End If
+            ElseIf splitCode = "RWP" Then
+                If Range("E" & cell.row).Value >= CDec(modulesTotal) Then                                 'change from module to sum of all modules to date
+                    defModule = 0
+                Else
+                    defModule = WorksheetFunction.Min(CDec(modulePriceString), Range("E" & cell.row).Value)
+                End If
+            ElseIf splitCode = "RWPWA" Then                                                               'change from module to sum of all modules to date and do a VLOOKUP to course code  & date matrix to check if accessed. If accessed Then 0
+                If Range("E" & cell.row).Value >= CDec(modulesTotal) And status = "Not Accessed" Then
+                    defModule = CDec(modulePriceString)
+                ElseIf Range("E" & cell.row).Value >= CDec(modulesTotal) And status = "Accessed" Then
+                    defModule = CDec(0)
+                Else
+                    defModule = WorksheetFunction.Min(CDec(modulePriceString), Range("E" & cell.row).Value)
+                End If
+            Else
+                defModule = 0
+            End If
+    End If
+    'Calculate the total Deferred Income Amount per Booking
+    defTotal = defTotal + CDec(defModule)
+    'End Layer3
+    
+  Next cell
+  
+  'DEFERRED INCOME ALLOCATION AND ARCHIVED BOOKING FILTER
+  'If cancelled or archived the no deferral
+  If Range("BE" & row.row) = "/" Then
+    Range("AZ" & row.row).Value = 0
+  'If active then calculate deferral
+  Else
+    'Record the deferred income figure
+    Range("AZ" & row.row).Value = defTotal
+  End If
+  
+Next row
+
+End Sub
+
+Sub TestEnvironment()
+
+  
+
+End Sub
